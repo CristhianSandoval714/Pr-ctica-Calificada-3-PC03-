@@ -1,0 +1,42 @@
+# kubernetes-manifests/ms-notificaciones.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ms-notificaciones-service # Nombre del servicio, será el DNS interno
+spec:
+  selector:
+    app: ms-notificaciones # Selecciona los Pods con esta etiqueta
+  ports:
+    - protocol: TCP
+      port: 3003 # Puerto por el que el servicio es accesible
+      targetPort: 3003 # Puerto en el contenedor
+  type: ClusterIP # Solo accesible DENTRO del clúster
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-notificaciones-deployment
+spec:
+  replicas: 1 # Queremos una sola instancia de este servicio
+  selector:
+    matchLabels:
+      app: ms-notificaciones
+  template:
+    metadata:
+      annotations:
+        linkerd.io/inject: enabled
+      labels:
+        app: ms-notificaciones # Etiqueta que el Service usa para encontrar este Pod
+    spec:
+      containers:
+        - name: ms-notificaciones
+          image: edsaana/ms-notificaciones:1.0 # La imagen que publicaste
+          ports:
+            - containerPort: 3003
+          env:
+            - name: PORT
+              value: "3003"
+            - name: JWT_SECRET
+              value: "ESTE_ES_UN_SECRETO_PARA_DESARROLLO_NO_USAR_EN_PROD"
+            - name: JWT_EXPIRES_IN
+              value: "1h"

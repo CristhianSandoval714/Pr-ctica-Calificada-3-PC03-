@@ -1,0 +1,24 @@
+# kubernetes-manifests/public-ingress.yaml (Ahora es el Ingress principal)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: main-api-ingress # Cambiamos el nombre para más claridad
+spec:
+  ingressClassName: kong
+  rules:
+  - http:
+      paths:
+        - path: /auth
+          pathType: Prefix
+          backend:
+            service:
+              name: ms-auth-service
+              port:
+                number: 4000
+        - path: /tutorias # <-- AÑADIMOS LA RUTA DE TUTORÍAS AQUÍ
+          pathType: Prefix
+          backend:
+            service:
+              name: ms-tutorias-service
+              port:
+                number: 3000

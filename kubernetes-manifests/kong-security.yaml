@@ -1,0 +1,30 @@
+# kubernetes-manifests/kong-security.yaml (Versión para Forzar Sincronización)
+
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: jwt-validation-plugin
+plugin: jwt
+config:
+  # Le decimos que busque la identidad en el campo 'sub' del token.
+  key_claim_name: "sub"
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongConsumer
+metadata:
+  name: mobile-app-consumer
+username: mobile-app-consumer
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mobile-app-consumer-jwt-credential
+  annotations:
+    konghq.com/consumer: mobile-app-consumer
+    konghq.com/credential-type: jwt
+type: Opaque
+stringData:
+  # La 'key' que coincide con el 'sub' del token de Ana Torres.
+  key: "e12345"
+  # El secreto para la firma.
+  secret: "ESTE_ES_UN_SECRETO_PARA_DESARROLLO_NO_USAR_EN_PROD"

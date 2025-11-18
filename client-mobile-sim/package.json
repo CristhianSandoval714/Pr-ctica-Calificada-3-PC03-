@@ -1,0 +1,17 @@
+{
+  "name": "client-mobile-sim",
+  "version": "1.0.0",
+  "description": "Un cliente en Node.js que simula una app móvil consumiendo el sistema de tutorías.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "edsaana",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.13.1",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "uuid": "^9.0.1"
+  }
+}

@@ -1,0 +1,49 @@
+# kubernetes-manifests/ms-tutorias.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ms-tutorias-service
+spec:
+  selector:
+    app: ms-tutorias
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-tutorias-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ms-tutorias
+  template:
+    metadata:
+      annotations:
+        linkerd.io/inject: enabled
+      labels:
+        app: ms-tutorias
+    spec:
+      containers:
+        - name: ms-tutorias
+          image: edsaana/ms-tutorias:1.2
+          ports:
+            - containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+            - name: JWT_SECRET
+              value: "ESTE_ES_UN_SECRETO_PARA_DESARROLLO_NO_USAR_EN_PROD"
+            # --- NETWORKING EN KUBERNETES ---
+            # Kubernetes tiene su propio DNS. Los servicios se comunican usando el nombre
+            # del 'Service' que definimos y su puerto. Ya no es 'localhost' ni el nombre de Docker Compose.
+            - name: MS_USUARIOS_URL
+              value: "http://ms-usuarios-service:3001/usuarios"
+            - name: MS_AGENDA_URL
+              value: "http://ms-agenda-service:3002/agenda"
+            - name: MS_NOTIFICACIONES_URL
+              value: "http://ms-notificaciones-service:3003/notificaciones"

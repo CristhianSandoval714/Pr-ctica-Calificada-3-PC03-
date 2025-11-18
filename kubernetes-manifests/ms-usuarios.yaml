@@ -1,0 +1,42 @@
+# kubernetes-manifests/ms-usuarios.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: ms-usuarios-service # Nombre del servicio, será el DNS interno
+spec:
+  selector:
+    app: ms-usuarios # Selecciona los Pods con esta etiqueta
+  ports:
+    - protocol: TCP
+      port: 3001 # Puerto por el que el servicio es accesible
+      targetPort: 3001 # Puerto en el contenedor
+  type: ClusterIP # Solo accesible DENTRO del clúster
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-usuarios-deployment
+spec:
+  replicas: 1 # Queremos una sola instancia de este servicio
+  selector:
+    matchLabels:
+      app: ms-usuarios
+  template:
+    metadata:
+      annotations:
+        linkerd.io/inject: enabled
+      labels:
+        app: ms-usuarios # Etiqueta que el Service usa para encontrar este Pod
+    spec:
+      containers:
+        - name: ms-usuarios
+          image: edsaana/ms-usuarios:1.1 # La imagen que publicaste
+          ports:
+            - containerPort: 3001
+          env:
+            - name: PORT
+              value: "3001"
+            - name: JWT_SECRET
+              value: "ESTE_ES_UN_SECRETO_PARA_DESARROLLO_NO_USAR_EN_PROD"
+            - name: JWT_EXPIRES_IN
+              value: "1h"

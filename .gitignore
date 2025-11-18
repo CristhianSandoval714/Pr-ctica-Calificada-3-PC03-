@@ -1,0 +1,31 @@
+# === Monorepo .gitignore ===
+
+# 1. Dependencias
+# Ignora TODAS las carpetas node_modules en CUALQUIER nivel
+node_modules/
+
+# 2. Archivos de Entorno
+# Ignora TODOS los archivos .env en CUALQUIER nivel
+# El ** significa "en cualquier carpeta o subcarpeta"
+**/.env
+**/.env.local
+**/.env.development
+**/.env.production
+
+# 3. Logs
+# Ignora logs en cualquier nivel
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+# 4. Carpetas de Build
+# Ignora carpetas de compilación en cualquier nivel
+**/dist
+**/build
+**/.next
+**/.nuxt
+
+# 5. Archivos del Sistema Operativo
+.DS_Store
+Thumbs.db
+desktop.ini

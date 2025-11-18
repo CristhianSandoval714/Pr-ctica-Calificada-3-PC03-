@@ -1,0 +1,18 @@
+# kong-values.yaml
+
+# Habilitamos la API de Admin, que por defecto está desactivada.
+admin:
+  enabled: true
+  type: ClusterIP # La API de Admin solo será accesible dentro del clúster
+  http:
+    enabled: true # Habilitamos el acceso por HTTP
+    port: 8001    # Le decimos que escuche en el puerto 8001
+
+# Nos aseguramos de que el servicio Proxy se cree de una forma
+# que Minikube pueda exponer fácilmente.
+proxy:
+  type: LoadBalancer
+
+# Deshabilitamos la interfaz gráfica de Kong Manager, no la necesitamos.
+manager:
+  enabled: false

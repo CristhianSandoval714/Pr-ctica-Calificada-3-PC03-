@@ -1,0 +1,173 @@
+# docker-compose.yml
+version: "3.8"
+
+services:
+  # --- Servicio de Autenticación ---
+  ms-auth:
+    build: ./ms-auth
+    ports:
+      - "4000:4000" # Mapea el puerto 4000 de tu máquina al 4000 del contenedor
+    environment:
+      - PORT=4000
+      - JWT_SECRET=ESTE_ES_UN_SECRETO_PARA_DESARROLLO_NO_USAR_EN_PROD
+      - JWT_EXPIRES_IN=1h
+
+  # --- Servicio de Usuarios ---
+  ms-usuarios:
+    build: ./ms-usuarios
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      # ---  VARIABLES PARA LA BD ---
+      - DB_HOST=db-usuarios # El nombre del servicio de la BD en Docker Compose
+      - DB_PORT=5432
+      - DB_USER=user_usuarios
+      - DB_PASSWORD=password_usuarios
+      - DB_NAME=db_usuarios
+      - RABBITMQ_URL=amqp://rabbit:rabbit@rabbitmq:5672
+    depends_on: # Asegura que la BD inicie antes que el servicio
+      - db-usuarios
+      - rabbitmq
+
+  # --- Servicio de Agenda ---
+  ms-agenda:
+    build: ./ms-agenda
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      # ---  VARIABLES PARA LA BD, similar a ms-usuarios ---
+      - DB_HOST=db-agenda # Nombre del servicio de BD
+      - DB_PORT=5432
+      - DB_USER=user_agenda
+      - DB_PASSWORD=password_agenda
+      - DB_NAME=db_agenda
+      - RABBITMQ_URL=amqp://rabbit:rabbit@rabbitmq:5672
+    depends_on: # Depende de su propia BD
+      - db-agenda
+      - rabbitmq
+
+  # --- Servicio de Message Broker ---
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine # Imagen con interfaz de gestión
+    container_name: rabbitmq
+    ports:
+      - "5672:5672" # Puerto AMQP para los servicios
+      - "15672:15672" # Puerto para la interfaz web de gestión
+    environment:
+      - RABBITMQ_DEFAULT_USER=rabbit # Usuario por defecto
+      - RABBITMQ_DEFAULT_PASS=rabbit # Contraseña por defecto
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq/
+
+  # --- Servicio de Notificaciones ---
+  ms-notificaciones:
+    build: ./ms-notificaciones
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - RABBITMQ_URL=amqp://rabbit:rabbit@rabbitmq:5672 # URL de conexión a RabbitMQ
+    depends_on:
+      - rabbitmq # Asegura que RabbitMQ inicie antes que este servicio
+
+  # --- Servicio de Tutorías (El Orquestador) ---
+  ms-tutorias:
+    build: ./ms-tutorias
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      # --- CAMBIO CRÍTICO DE NETWORKING - Identificacion y Nombramiento de Servicios ---
+      # Dentro de la red de Docker, los servicios se comunican usando su nombre de servicio,
+      # no 'localhost'. Docker Compose se encarga de resolver estos nombres.
+      - MS_USUARIOS_URL=http://ms-usuarios:3001/usuarios
+      - MS_AGENDA_URL=http://ms-agenda:3002/agenda
+      - MS_NOTIFICACIONES_URL=http://ms-notificaciones:3003/notificaciones
+      - JWT_SECRET=ESTE_ES_UN_SECRETO_PARA_DESARROLLO_NO_USAR_EN_PROD
+      # --- VARIABLES DE LA BD PARA TUTORÍAS ---
+      - DB_HOST=db-tutorias
+      - DB_PORT=5432
+      - DB_USER=user_tutorias
+      - DB_PASSWORD=password_tutorias
+      - DB_NAME=db_tutorias
+      - RABBITMQ_URL=amqp://rabbit:rabbit@rabbitmq:5672 # URL de conexión a RabbitMQ
+    depends_on:
+      - ms-auth
+      - ms-usuarios
+      - ms-agenda
+      - ms-notificaciones
+      - db-tutorias
+      - rabbitmq # Asegura que RabbitMQ inicie antes que este servicio
+
+  # --- Cliente Web Interactivo ---
+  client-sim:
+    build: ./client-mobile-sim
+    container_name: client_sim_web
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      # URLs que apuntan a los nombres de servicio de Docker Compose
+      - API_BASE_URL=http://ms-tutorias:3000
+      - AUTH_SERVICE_URL=http://ms-auth:4000/auth
+    depends_on:
+      - ms-auth
+      - ms-tutorias
+
+  # --- Dashboard de Trazabilidad ---
+  tracking-dashboard:
+    build: ./tracking-dashboard
+    container_name: tracking_dashboard
+    ports:
+      - "9000:9000"
+    environment:
+      - PORT=9000
+      - RABBITMQ_URL=amqp://rabbit:rabbit@rabbitmq:5672
+    depends_on:
+      - rabbitmq
+
+  # --- Servicio de Base de Datos PostgreSQL ---
+  db-usuarios:
+    image: postgres:14-alpine # Usamos una imagen oficial de PostgreSQL
+    container_name: db_usuarios_postgres
+    environment:
+      POSTGRES_USER: user_usuarios # Define el usuario de la BD
+      POSTGRES_PASSWORD: password_usuarios # Define la contraseña
+      POSTGRES_DB: db_usuarios # Define el nombre de la base de datos
+    ports:
+      - "5432:5432" # Expone el puerto 5432 en el host y 5432 para el Postgres dentro del contenedor
+    volumes:
+      - postgres_data_usuarios:/var/lib/postgresql/data # Persiste los datos fuera del contenedor
+
+  db-agenda:
+    image: postgres:14-alpine
+    container_name: db_agenda_postgres
+    environment:
+      POSTGRES_USER: user_agenda
+      POSTGRES_PASSWORD: password_agenda
+      POSTGRES_DB: db_agenda
+    ports:
+      - "5433:5432" # Mapeamos al puerto 5433 en el host para evitar conflicto con db-usuarios (5432)
+    volumes:
+      - postgres_data_agenda:/var/lib/postgresql/data
+
+  db-tutorias:
+    image: postgres:14-alpine
+    container_name: db_tutorias_postgres
+    environment:
+      POSTGRES_USER: user_tutorias
+      POSTGRES_PASSWORD: password_tutorias
+      POSTGRES_DB: db_tutorias
+    ports:
+      - "5434:5432" # Se mapea el puerto 5434 en el host para evitar conflicto con db-usuarios (5432)
+    volumes:
+      - postgres_data_tutorias:/var/lib/postgresql/data
+
+# --- Definición de Volúmenes ---
+volumes:
+  postgres_data_usuarios:
+  postgres_data_agenda:
+  postgres_data_tutorias:
+  rabbitmq_data:

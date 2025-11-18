@@ -1,0 +1,29 @@
+# kubernetes-manifests/kong-ingress.yaml (versión final)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tutorias-api-ingress
+  annotations:
+    # Añadimos una anotación para aplicar nuestro plugin de JWT
+    # a TODAS las rutas definidas en este Ingress.
+    konghq.com/plugins: jwt-validation-plugin
+spec:
+  ingressClassName: kong
+  rules:
+  - http:
+      paths:
+        - path: /auth
+          pathType: Prefix
+          backend:
+            service:
+              name: ms-auth-service
+              port:
+                number: 4000
+        # --- NUEVA RUTA PROTEGIDA ---
+        - path: /tutorias
+          pathType: Prefix
+          backend:
+            service:
+              name: ms-tutorias-service
+              port:
+                number: 3000

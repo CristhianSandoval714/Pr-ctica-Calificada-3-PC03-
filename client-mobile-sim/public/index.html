@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cliente Simulador - Tutorías</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 2rem; background-color: #f4f7f6; }
+        .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        h1 { text-align: center; color: #333; }
+        form { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+        .form-group { display: grid; gap: 0.5rem; }
+        label { font-weight: 600; color: #555; }
+        input, button { padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; }
+        button { background-color: #007bff; color: white; font-weight: 700; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        #resultado { margin-top: 1.5rem; padding: 1rem; background: #eee; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; font-family: monospace; }
+        .error { background: #ffebee; color: #b71c1c; }
+        .success { background: #e8f5e9; color: #1b5e20; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Simulador de Tutorías</h1>
+        <form id="tutoria-form">
+            <fieldset>
+                <legend><strong>1. Autenticación</strong></legend>
+                <div class="form-group">
+                    <label for="username">Usuario (estudiante):</label>
+                    <input type="text" id="username" name="username" value="ana.torres" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Contraseña:</label>
+                    <input type="password" id="password" name="password" value="password_ana" required>
+                </div>
+            </fieldset>
+
+            <fieldset>
+                <legend><strong>2. Datos de la Tutoría</strong></legend>
+                <div class="form-group">
+                    <label for="idTutor">ID del Tutor:</label>
+                    <input type="text" id="idTutor" name="idTutor" value="t09876" required>
+                </div>
+                <div class="form-group">
+                    <label for="fecha">Fecha y Hora (ISO 8601):</label>
+                    <input type="text" id="fecha" name="fecha" value="2025-12-20T10:00:00Z" required>
+                </div>
+                <div class="form-group">
+                    <label for="materia">Materia:</label>
+                    <input type="text" id="materia" name="materia" value="Física Cuántica" required>
+                </div>
+                 <div class="form-group">
+                    <label for="duracion">Duración (minutos):</label>
+                    <input type="number" id="duracion" name="duracion" value="60" required>
+                </div>
+            </fieldset>
+
+            <button type="submit" id="submit-btn">Solicitar Tutoría</button>
+        </form>
+
+        <div id="resultado">Esperando solicitud...</div>
+    </div>
+
+    <script>
+        const form = document.getElementById('tutoria-form');
+        const resultadoDiv = document.getElementById('resultado');
+        const submitBtn = document.getElementById('submit-btn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            resultadoDiv.textContent = 'Procesando...';
+            resultadoDiv.className = '';
+            submitBtn.disabled = true;
+
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('/api/solicitar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const resultado = await response.json();
+
+                if (!response.ok) {
+                    // Si el servidor devuelve un error (4xx, 5xx)
+                    throw new Error(resultado.error ? JSON.stringify(resultado.error) : 'Error desconocido');
+                }
+
+                // Éxito
+                resultadoDiv.textContent = JSON.stringify(resultado, null, 2);
+                resultadoDiv.className = 'success';
+
+            } catch (error) {
+                // Error de red o error lanzado
+                resultadoDiv.textContent = `Error: ${error.message}`;
+                resultadoDiv.className = 'error';
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
